@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter } from "next/navigation";
 import { fetchRecipes, fetchCategories } from "../utils/api";
@@ -20,15 +20,19 @@ function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [inputValue, setInputValue] = useState(searchParams.get("search") || "");
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [category, setCategory] = useState(searchParams.get("category") || "All");
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
+  const search = searchParams?.get("search") || "";
+  const categoryParam = searchParams?.get("category") || "All";
+  const page = Number(searchParams?.get("page")) || 1;
+
+  const [inputValue, setInputValue] = useState(search);
+  const [searchQuery, setSearchQuery] = useState(search);
+  const [category, setCategory] = useState(categoryParam);
+  const [currentPage, setCurrentPage] = useState(page);
   const itemsPerPage = 2;
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      setSearchQuery(inputValue);
+      setSearchQuery(inputValue.trim());
     }, 2000);
     return () => clearTimeout(handler);
   }, [inputValue]);
@@ -36,7 +40,7 @@ function SearchPageContent() {
   const { data: allRecipes, isLoading } = useQuery({
     queryKey: ["recipes", searchQuery],
     queryFn: () => fetchRecipes(searchQuery),
-    enabled: !!searchQuery,
+    enabled: true,
   });
 
   const { data: categories } = useQuery({
@@ -44,10 +48,11 @@ function SearchPageContent() {
     queryFn: fetchCategories,
   });
 
-  const filteredRecipes =
-    category === "All"
-      ? allRecipes || []
-      : allRecipes?.filter((recipe: Recipe) => recipe?.strCategory === category) || [];
+  const filteredRecipes = (allRecipes || []).filter((recipe: Recipe) => {
+    const matchesCategory = category === "All" || recipe.strCategory === category;
+    const matchesSearch = recipe.strMeal.toLowerCase().startsWith(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const totalPages = Math.ceil(filteredRecipes.length / itemsPerPage) || 1;
 
@@ -124,8 +129,6 @@ function SearchPageContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<p>Loading...</p>}>
-      <SearchPageContent />
-    </Suspense>
+    <SearchPageContent />
   );
 }
