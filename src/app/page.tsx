@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter } from "next/navigation";
 import { fetchRecipes, fetchCategories } from "../utils/api";
@@ -13,9 +14,9 @@ type Recipe = {
   strMeal: string;
   strCategory: string;
   strArea: string;
-}
+};
 
-export default function HomePage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -35,6 +36,7 @@ export default function HomePage() {
   const { data: allRecipes, isLoading } = useQuery({
     queryKey: ["recipes", searchQuery],
     queryFn: () => fetchRecipes(searchQuery),
+    enabled: !!searchQuery,
   });
 
   const { data: categories } = useQuery({
@@ -45,7 +47,7 @@ export default function HomePage() {
   const filteredRecipes =
     category === "All"
       ? allRecipes || []
-      : allRecipes?.filter((recipe: Recipe) => recipe.strCategory === category) || [];
+      : allRecipes?.filter((recipe: Recipe) => recipe?.strCategory === category) || [];
 
   const totalPages = Math.ceil(filteredRecipes.length / itemsPerPage) || 1;
 
@@ -79,9 +81,8 @@ export default function HomePage() {
 
   return (
     <Container>
-      <Typography variant="h4" sx={{ marginBottom: 2 }}>
-        Recipes
-      </Typography>
+      <Typography variant="h4" sx={{ marginBottom: 2 }}>Recipes</Typography>
+
       <TextField
         label="Search recipes"
         variant="outlined"
@@ -90,6 +91,7 @@ export default function HomePage() {
         onChange={handleSearchChange}
         sx={{ marginBottom: 2 }}
       />
+
       <Select value={category} onChange={handleCategoryChange} sx={{ marginBottom: 2 }}>
         <MenuItem value="All">All Categories</MenuItem>
         {categories?.map((cat: { strCategory: string }) => (
@@ -109,7 +111,7 @@ export default function HomePage() {
         </Grid>
       ) : (
         <Typography variant="h6" color="textSecondary" sx={{ textAlign: "center", marginTop: 2 }}>
-          not found any recipes
+          No recipes found
         </Typography>
       )}
 
@@ -117,5 +119,13 @@ export default function HomePage() {
         <Pagination totalPages={totalPages} currentPage={currentPage} onPageChange={handlePageChange} />
       )}
     </Container>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
