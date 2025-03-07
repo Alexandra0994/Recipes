@@ -2,19 +2,26 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecipeById } from "@/utils/api";
-import { Recipe } from "@/types/recipe";
 import { useParams } from "next/navigation";
-import { Container, Typography, CircularProgress, List, ListItem, ListItemText, Button } from "@mui/material";
+import {
+    Container,
+    Typography,
+    CircularProgress,
+    List,
+    ListItem,
+    ListItemText,
+    Button,
+} from "@mui/material";
 import Image from "next/image";
-
-interface RecipeContentProps {
-    onAddToCart: (recipe: Recipe) => void;
+interface Params {
+    id?: string;
 }
 
-function RecipeContent({ onAddToCart }: RecipeContentProps) {
-    const params = useParams();
-    const id = params?.id as string | undefined;
-    const { data: recipe, isLoading } = useQuery({
+function RecipeContent() {
+    const params = useParams() as Params;
+    const id = params?.id;
+
+    const { data: fetchedRecipe, isLoading } = useQuery({
         queryKey: ["recipe", id],
         queryFn: () => fetchRecipeById(id as string),
         enabled: !!id,
@@ -22,25 +29,25 @@ function RecipeContent({ onAddToCart }: RecipeContentProps) {
 
     if (!id) return <Typography variant="h6">Recipe not found</Typography>;
     if (isLoading) return <CircularProgress />;
-    if (!recipe) return <Typography variant="h6">Recipe not found</Typography>;
+    if (!fetchedRecipe) return <Typography variant="h6">Recipe not found</Typography>;
 
-    const ingredients = Object.entries(recipe)
+    const ingredients = Object.entries(fetchedRecipe)
         .filter(([key, value]) => key.startsWith("strIngredient") && value)
-        .map(([_, value]) => value);
+        .map(([, value]) => value);
 
-    const measures = Object.entries(recipe)
+    const measures = Object.entries(fetchedRecipe)
         .filter(([key, value]) => key.startsWith("strMeasure") && value)
-        .map(([_, value]) => value);
+        .map(([, value]) => value);
 
     return (
         <Container>
             <Typography variant="h4" sx={{ marginBottom: 2 }}>
-                {recipe.strMeal}
+                {fetchedRecipe.strMeal}
             </Typography>
 
             <Image
-                src={recipe.strMealThumb}
-                alt={recipe.strMeal}
+                src={fetchedRecipe.strMealThumb}
+                alt={fetchedRecipe.strMeal}
                 width={400}
                 height={400}
                 priority
@@ -48,15 +55,15 @@ function RecipeContent({ onAddToCart }: RecipeContentProps) {
             />
 
             <Typography variant="h6" sx={{ marginBottom: 1 }}>
-                Category: {recipe.strCategory}
+                Category: {fetchedRecipe.strCategory}
             </Typography>
 
             <Typography variant="h6" sx={{ marginBottom: 1 }}>
-                Origin: {recipe.strArea}
+                Origin: {fetchedRecipe.strArea}
             </Typography>
 
             <Typography variant="body1" sx={{ marginBottom: 2 }}>
-                {recipe.strInstructions}
+                {fetchedRecipe.strInstructions}
             </Typography>
 
             {ingredients.length > 0 && (
@@ -77,7 +84,6 @@ function RecipeContent({ onAddToCart }: RecipeContentProps) {
             <Button
                 variant="contained"
                 color="primary"
-                onClick={() => onAddToCart(recipe)}
                 sx={{ marginTop: 2 }}
             >
                 Add to Cart
